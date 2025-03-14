@@ -1,0 +1,19 @@
+import os
+import shutil
+import re
+
+import pandas as pd
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+from sklearn.ensemble import IsolationForest
+
+from tkinter import Tk, filedialog
+from tkinter.filedialog import askdirectory
+
+import Projects as pjc
+import Parts as pt
+
+# 设置中文字体，解决字体显示问题
+matplotlib.rcParams['font.sans-serif'] = ['Microsoft YaHei']  # 例如使用微软雅黑（SimHei）
+matplotlib.rcParams['axes.unicode_minus'] = False  # 解决负号显示问题
