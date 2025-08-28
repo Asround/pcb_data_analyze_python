@@ -7,6 +7,7 @@ import re
 
 import pandas as pd
 import matplotlib
+matplotlib.use('TkAgg') # 解决PyCharm的Matplotlib后端与当前Matplotlib版本不兼容问题
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.ensemble import IsolationForest
@@ -30,15 +31,16 @@ def analyze_data(file_path, degree=3, show_equation=True, show_r_squared=True, l
     读取数据，进行多项式拟合并绘制结果，同时可以控制图表的细节和拟合的显示内容。
 
     参数：
-    - file_path: Excel 文件的路径。
-    - degree: 多项式拟合的次数，默认3。
-    - show_equation: 是否在图中显示拟合函数表达式，默认显示。
-    - show_r_squared: 是否显示决定系数R²，默认显示。
-    - line_style: 曲线的线型，默认为 '--'（虚线）。
-    - line_color: 曲线的颜色，默认为 'r'（红色）。
-    - line_width: 曲线的线宽，默认为 1.5。
-    - connect_points: 是否连接原始数据点，默认不连接。(因为数据点较多, 不连接可以看出走势, 连接后观感不好)
+    :param file_path: Excel 文件的路径。
+    :param degree: 多项式拟合的次数，默认3。
+    :param show_equation: 是否在图中显示拟合函数表达式，默认显示。
+    :param show_r_squared: 是否显示决定系数R²，默认显示。
+    :param line_style: 曲线的线型，默认为 '--'（虚线）。
+    :param line_color: 曲线的颜色，默认为 'r'（红色）。
+    :param line_width: 曲线的线宽，默认为 1.5。
+    :param connect_points: 是否连接原始数据点，默认不连接。(因为数据点较多, 不连接可以看出走势, 连接后观感不好)
          - 但在数据点上下频繁跳动时, 连接数据点看得更加清楚 (特指辐照注量小的情况)
+    :param use_log: 对数据进行对数化处理, 默认关闭, 需要请手动设置为True
     """
 
     # 读取 Excel 文件, 提取电压电流数据
@@ -54,19 +56,19 @@ def analyze_data(file_path, degree=3, show_equation=True, show_r_squared=True, l
     equation_str = pt.format_equation(p, degree)
 
     # 计算 R²（决定系数）
-    r_squared = pt.calculate_r_squared(y,y_fit)
+    r_squared = pt.calculate_r_squared(y, y_fit)
 
     # 打印 R² 值
     print(f"决定系数: R^2 = {r_squared:.12f}")  # 12位保证在拟合效果较好时能看出差距
 
     # 作图, 原数据及拟合曲线
     pt.plot_single(x, y, y_fit, p, degree, show_equation, show_r_squared, line_style, line_color, line_width,
-                    connect_points,use_log)
+                   connect_points, use_log)
 
 
-# # 使用例 : 以下两个路径分别对应不同类型的xlsx文件, 可分别运行测试
-# file_path = "./datas_learn/B00.xlsx"  # 替换为你自己的文件路径(一定要是.xlsx文件!)
-# # file_path = "./datas_learn/B4.xlsx"  # 替换为你自己的文件路径(一定要是.xlsx文件!)
+# # 使用例 :
+# file_path = "./datas_learn/analyze_data/B00.xlsx"  # 替换为你自己的文件路径(一定要是.xlsx文件!)
+# # file_path = "./datas_learn/analyze_data/B0.5.xlsx"  # 替换为你自己的文件路径(一定要是.xlsx文件!)
 #
 # # 分析file_path对应路径的文件, 用3次多项式进行拟合, 拟合多项式表达式和决定系数均展示, 拟合曲线的线型为虚线, 红色, 宽度为1
 # analyze_data(file_path, degree=3, show_equation=False, show_r_squared=True, line_style='--', line_color='r',
@@ -81,13 +83,14 @@ def analyze_data_windowed(degree=3, show_equation=True, show_r_squared=True, lin
     通过弹窗选择文件路径，读取数据，进行多项式拟合并绘制结果。
 
     参数：
-    - degree: 多项式拟合的次数，默认3。
-    - show_equation: 是否在图中显示拟合函数表达式，默认显示。
-    - show_r_squared: 是否显示决定系数R²，默认显示。
-    - line_style: 曲线的线型，默认为 '--'（虚线）。
-    - line_color: 曲线的颜色，默认为 'r'（红色）。
-    - line_width: 曲线的线宽，默认为 1.5。
-    - connect_points: 是否连接原始数据点，默认不连接。
+    :param degree: 多项式拟合的次数，默认3。
+    :param show_equation: 是否在图中显示拟合函数表达式，默认显示。
+    :param show_r_squared: 是否显示决定系数R²，默认显示。
+    :param line_style: 曲线的线型，默认为 '--'（虚线）。
+    :param line_color: 曲线的颜色，默认为 'r'（红色）。
+    :param line_width: 曲线的线宽，默认为 1.5。
+    :param connect_points: 是否连接原始数据点，默认不连接。
+    :param use_log: 对数据进行对数化处理, 默认关闭, 需要请手动设置为True
     """
     # 弹窗选择文件
     file_path = pt.select_file()
@@ -125,11 +128,12 @@ def plot_multiple_files(folder_path, colors=None, labels=None, line_styles=None,
     绘制文件夹中所有 Excel 文件的数据到同一张图中，方便对比。
 
     参数：
-    - folder_path: 文件夹路径，例如 "./data"。
-    - colors: 每个文件的曲线颜色列表，例如 ['b', 'r', 'g']。
-    - labels: 每个文件的图例标签列表，例如 ["文件1", "文件2", "文件3"]。
-    - line_styles: 每个文件的线型列表，例如 ['-', '--', ':']。
-    - line_widths: 每个文件的线宽列表，例如 [1.5, 1.5, 1.5]。
+    :param folder_path: 文件夹路径，例如 "./data"。
+    :param colors: 每个文件的曲线颜色列表，例如 ['b', 'r', 'g']。
+    :param labels: 每个文件的图例标签列表，例如 ["文件1", "文件2", "文件3"]。
+    :param line_styles: 每个文件的线型列表，例如 ['-', '--', ':']。
+    :param line_widths: 每个文件的线宽列表，例如 [1.5, 1.5, 1.5]。
+    :param use_log: 对数据进行对数化处理, 默认关闭, 需要请手动设置为True
     """
     # 获取文件夹中的所有 Excel 文件
     file_paths = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if f.endswith('.xlsx')]
@@ -177,8 +181,9 @@ def plot_multiple_files(folder_path, colors=None, labels=None, line_styles=None,
 
 
 # # 使用例
-# folder_path = './datas_learn/compare/compare2'  # 替换为你的文件夹路径
-# # folder_path = './datas_learn/compare/compare1'  # 替换为你的文件夹路径
+# # folder_path = './datas_learn/plot_multiple_files/compare1'  # 替换为你的文件夹路径
+# folder_path = './datas_learn/plot_multiple_files/compare2'  # 替换为你的文件夹路径
+#
 # plot_multiple_files(folder_path, colors=None, labels=None, line_styles=None, line_widths=None)
 
 ''' ------------------------------------- 2(2). 多个表格同一张图进行比较(弹窗选择路径) -------------------------------------'''
@@ -189,10 +194,11 @@ def plot_multiple_files_windowed(colors=None, labels=None, line_styles=None, lin
     通过弹窗选择文件夹，绘制文件夹中所有 Excel 文件的数据到同一张图中，方便对比。
 
     参数：
-    - colors: 每个文件的曲线颜色列表，例如 ['b', 'r', 'g']。
-    - labels: 每个文件的图例标签列表，例如 ["文件1", "文件2", "文件3"]。
-    - line_styles: 每个文件的线型列表，例如 ['-', '--', ':']。
-    - line_widths: 每个文件的线宽列表，例如 [1.5, 1.5, 1.5]。
+    :param colors: 每个文件的曲线颜色列表，例如 ['b', 'r', 'g']。
+    :param labels: 每个文件的图例标签列表，例如 ["文件1", "文件2", "文件3"]。
+    :param line_styles: 每个文件的线型列表，例如 ['-', '--', ':']。
+    :param line_widths: 每个文件的线宽列表，例如 [1.5, 1.5, 1.5]。
+    :param use_log: 对数据进行对数化处理, 默认关闭, 需要请手动设置为True
     """
     # 弹窗选择文件夹
     folder_path = pt.select_folder()
@@ -205,7 +211,24 @@ def plot_multiple_files_windowed(colors=None, labels=None, line_styles=None, lin
 
     # 设置默认值
     if colors is None:
-        colors = ['b', 'r', 'g', 'c', 'm', 'y', 'k'] * (len(file_paths))  # 默认颜色列表
+        colors = [
+        '#1f77b4',  # 蓝色
+        '#ff7f0e',  # 橙色
+        '#2ca02c',  # 绿色
+        '#d62728',  # 红色
+        '#9467bd',  # 紫色
+        '#8c564b',  # 棕色
+        '#e377c2',  # 粉色
+        '#7f7f7f',  # 灰色
+        '#bcbd22',  # 黄绿色
+        '#17becf',  # 青色
+        '#aec7e8',  # 浅蓝色
+        '#ffbb78',  # 浅橙色
+        '#98df8a',  # 浅绿色
+        '#ff9896',  # 浅红色
+        '#c5b0d5',  # 浅紫色
+        '#c49c94'   # 浅棕色
+    ] * (len(file_paths))  # 默认颜色列表
     if labels is None:
         labels = [os.path.splitext(os.path.basename(f))[0] for f in file_paths]  # 默认标签为文件名
     if line_styles is None:
@@ -258,15 +281,16 @@ def batch_analyze_data(folder_path, output_folder=None, degree=3, show_equation=
     批量处理文件夹中的 Excel 文件，进行多项式拟合并保存图像。
 
     参数：
-    - folder_path: 包含 Excel 文件的文件夹路径。
-    - output_folder: 保存图像的文件夹路径。如果为 None，将默认生成一个以'文件夹名_img'命名的子文件夹。
-    - degree: 多项式拟合的次数，默认3。
-    - show_equation: 是否在图中显示拟合函数表达式，默认显示。
-    - show_r_squared: 是否显示决定系数R²，默认显示。
-    - line_style: 曲线的线型，默认为 '--'（虚线）。
-    - line_color: 曲线的颜色，默认为 'r'（红色）。
-    - line_width: 曲线的线宽，默认为 1.5。
-    - connect_points: 是否连接原始数据点，默认不连接。
+    :param folder_path: 包含 Excel 文件的文件夹路径。
+    :param output_folder: 保存图像的文件夹路径。如果为 None，将默认生成一个以'文件夹名_img'命名的子文件夹。
+    :param degree: 多项式拟合的次数，默认3。
+    :param show_equation: 是否在图中显示拟合函数表达式，默认显示。
+    :param show_r_squared: 是否显示决定系数R²，默认显示。
+    :param line_style: 曲线的线型，默认为 '--'（虚线）。
+    :param line_color: 曲线的颜色，默认为 'r'（红色）。
+    :param line_width: 曲线的线宽，默认为 1.5。
+    :param connect_points: 是否连接原始数据点，默认不连接。
+    :param use_log: 对数据进行对数化处理, 默认关闭, 需要请手动设置为True
     """
     # 如果未传入output_folder，生成一个默认路径
     if output_folder is None:
@@ -293,7 +317,7 @@ def batch_analyze_data(folder_path, output_folder=None, degree=3, show_equation=
 
 
 # # 使用例
-# folder_path = './datas_learn/many1'
+# folder_path = './datas_learn/batch_analyze_data' # 存放图片的路径为: ./datas_learn/many1/many1_3degree_img
 # batch_analyze_data(folder_path, degree= 3, line_style='--', line_color='r', connect_points=False)
 
 ''' ------------------------------------- 3(2). 多个表格批量画图保存到文件夹(弹窗选择路径) --------------------------------'''
@@ -306,13 +330,14 @@ def batch_analyze_data_windowed(output_folder=None, degree=3, show_equation=True
     需要: from tkinter import Tk, filedialog
 
     参数：
-    - degree: 多项式拟合的次数，默认3。
-    - show_equation: 是否在图中显示拟合函数表达式，默认显示。
-    - show_r_squared: 是否显示决定系数R²，默认显示。
-    - line_style: 曲线的线型，默认为 '--'(虚线)。
-    - line_color: 曲线的颜色，默认为 'r'（红色）。
-    - line_width: 曲线的线宽，默认为 1.5。
-    - connect_points: 是否连接原始数据点，默认不连接。
+    :param degree: 多项式拟合的次数，默认3。
+    :param show_equation: 是否在图中显示拟合函数表达式，默认显示。
+    :param show_r_squared: 是否显示决定系数R²，默认显示。
+    :param line_style: 曲线的线型，默认为 '--'(虚线)。
+    :param line_color: 曲线的颜色，默认为 'r'（红色）。
+    :param line_width: 曲线的线宽，默认为 1.5。
+    :param connect_points: 是否连接原始数据点，默认不连接。
+    :param use_log: 对数据进行对数化处理, 默认关闭, 需要请手动设置为True
     """
     # 弹窗选择文件夹
     folder_path = pt.select_folder()
@@ -343,19 +368,20 @@ def batch_analyze_data_windowed(output_folder=None, degree=3, show_equation=True
     print('分析完成.')
 
 
-# # 使用弹窗选择文件夹路径并批量分析
+# # 使用例:
 # batch_analyze_data_windowed(degree=3, show_equation=True, show_r_squared=True, line_style='--',
-#                             line_color='r', line_width=1.5, connect_points=False)
+#                             line_color='r', line_width=1.5, connect_points=False
 
 ''' ------------------------------------- 3(3). 多文件夹多表格批量画图保存到文件夹(指定路径) --------------------------------'''
 
 def plot_multiple_folders(base_folder, use_log=False):
     '''
-    base_folder: 一级文件夹
-    一级文件夹下有许多装有 xlsx表格的二级文件夹,
-    函数会依次读取二级文件夹的文件夹路径, 并以之为参数传给 pt.plot_multiple_files_no_display函数画图
-    画图后将图片统一存储到一级文件夹目录下的"multiple_img"文件夹中
-    图片的名字是对应二级文件夹的名字
+    :param base_folder: 一级文件夹
+        一级文件夹下有许多装有 xlsx表格的二级文件夹,
+        函数会依次读取二级文件夹的文件夹路径, 并以之为参数传给 pt.plot_multiple_files_no_display函数画图
+        画图后将图片统一存储到一级文件夹目录下的"multiple_img"文件夹中
+        图片的名字是对应二级文件夹的名字
+    :param use_log: 对数据进行对数化处理, 默认关闭, 需要请手动设置为True
     '''
     # 创建img文件夹路径
     img_folder = os.path.join(base_folder, '0multiple_img')
@@ -384,8 +410,8 @@ def plot_multiple_folders(base_folder, use_log=False):
         plt.close()  # 关闭当前图像，避免内存泄漏
 
 
-# # 示例调用
-# base_folder = './datas_analyze/compare_t'
+# # 使用例
+# base_folder = './datas_learn/plot_multiple_folders'
 # plot_multiple_folders(base_folder)
 
 ''' ------------------------------------- 4(1). 单文件双法并行去除离群值曲线拟合(不迭代) ---------------------------------'''
@@ -398,15 +424,15 @@ def analyze_data_OutlierRemoval(file_path, degree=3, show_equation=True, show_r_
     读取数据，进行多项式拟合并绘制结果，支持去除异常值。
 
     参数：
-    - file_path: Excel 文件的路径。
-    - degree: 多项式拟合的次数，默认3。
-    - show_equation: 是否在图中显示拟合函数表达式，默认显示。
-    - show_r_squared: 是否显示决定系数R²，默认显示。
-    - line_style: 曲线的线型，默认为 '--'（虚线）。
-    - line_color: 曲线的颜色，默认为 'r'（红色）。
-    - line_width: 曲线的线宽，默认为 1.5。
-    - remove_outliers: 是否去除异常值，默认 True。
-    - threshold: 异常值判断的阈值（基于残差的标准差倍数），默认 3。
+    :param- file_path: Excel 文件的路径。
+    :param- degree: 多项式拟合的次数，默认3。
+    :param- show_equation: 是否在图中显示拟合函数表达式，默认显示。
+    :param- show_r_squared: 是否显示决定系数R²，默认显示。
+    :param- line_style: 曲线的线型，默认为 '--'（虚线）。
+    :param- line_color: 曲线的颜色，默认为 'r'（红色）。
+    :param- line_width: 曲线的线宽，默认为 1.5。
+    :param- remove_outliers: 是否去除异常值，默认 True。
+    :param- threshold: 异常值判断的阈值（基于残差的标准差倍数），默认 3。
     """
     # 读取 Excel 文件, 提取电压电流数据
     x, y = pt.read_xlsx(file_path)
@@ -458,9 +484,10 @@ def analyze_data_OutlierRemoval(file_path, degree=3, show_equation=True, show_r_
 
 
 # # 使用例 : 使用 analyze_data_OutlierRemoval 进行分析
-# file_path = "./datas_learn/B00.xlsx"  # 替换为你自己的文件路径
+# file_path = "./datas_learn/outlier_removal/B00.xlsx"  # 替换为你自己的文件路径
 # analyze_data_OutlierRemoval(file_path, degree=3, show_equation=True, show_r_squared=True,
 #                                     line_style='--', line_color='r', line_width=1, remove_outliers=True, threshold=0.5)
+
 ''' ------------------------------------- 4(2). 单文件双法并行去除离群值曲线拟合(不迭代, 弹窗) ------------------------------'''
 
 
@@ -553,17 +580,17 @@ def iterate_fitting_OutlierRemoval(file_path, degree=3, show_equation=True, show
     读取数据，进行多项式拟合并绘制结果，支持迭代去除异常值。
 
     参数：
-    - file_path: Excel 文件的路径。
-    - degree: 多项式拟合的次数，默认3。
-    - show_equation: 是否在图中显示拟合函数表达式，默认显示。
-    - show_r_squared: 是否显示决定系数R²，默认显示。
-    - line_style: 曲线的线型，默认为 '-'（实线）。
-    - line_color: 曲线的颜色，默认为 'b'（蓝色）。
-    - line_width: 曲线的线宽，默认为 1.5。
-    - remove_outliers: 是否去除异常值，默认 True。
-    - target_r_squared: 目标决定系数 R²，默认 0.9。
-    - min_threshold: threshold 的最小值，默认 0.3。
-    - initial_threshold: threshold 的初始值，默认 3。
+    :param- file_path: Excel 文件的路径。
+    :param- degree: 多项式拟合的次数，默认3。
+    :param- show_equation: 是否在图中显示拟合函数表达式，默认显示。
+    :param- show_r_squared: 是否显示决定系数R²，默认显示。
+    :param- line_style: 曲线的线型，默认为 '-'（实线）。
+    :param- line_color: 曲线的颜色，默认为 'b'（蓝色）。
+    :param- line_width: 曲线的线宽，默认为 1.5。
+    :param- remove_outliers: 是否去除异常值，默认 True。
+    :param- target_r_squared: 目标决定系数 R²，默认 0.9。
+    :param- min_threshold: threshold 的最小值，默认 0.3。
+    :param- initial_threshold: threshold 的初始值，默认 3。
     """
     # 读取 Excel 文件, 提取电压电流数据
     x, y = pt.read_xlsx(file_path)
@@ -610,10 +637,11 @@ def iterate_fitting_OutlierRemoval(file_path, degree=3, show_equation=True, show
 
 
 # # 使用例: 使用 iterate_fitting_OutlierRemoval 进行分析
-# file_path = "./datas_learn/B00.xlsx"  # 替换为你自己的文件路径
+# file_path = "./datas_learn/outlier_removal/B00.xlsx"  # 替换为你自己的文件路径
 # iterate_fitting_OutlierRemoval(file_path, degree=3, show_equation=False, show_r_squared=True,
 #                               line_style='--', line_color='r', line_width=1, remove_outliers=True,
 #                               target_r_squared=0.9, min_threshold=1, initial_threshold=3)
+
 
 
 ''' ------------------------------------- 5(2). 单文件双法并行去除离群值曲线拟合(可迭代, 弹窗) ------------------------------'''
@@ -627,17 +655,17 @@ def iterate_fitting_OutlierRemoval_windowed(degree=3, show_equation=True, show_r
     读取数据，进行多项式拟合并绘制结果，支持迭代去除异常值。
 
     参数：
-    - file_path: Excel 文件的路径。
-    - degree: 多项式拟合的次数，默认3。
-    - show_equation: 是否在图中显示拟合函数表达式，默认显示。
-    - show_r_squared: 是否显示决定系数R²，默认显示。
-    - line_style: 最终拟合曲线的线型，默认为 '-'（实线）。
-    - line_color: 最终拟合曲线的颜色，默认为 'b'（蓝色）。
-    - line_width: 最终拟合曲线的线宽，默认为 1.5。
-    - remove_outliers: 是否去除异常值，默认 True。
-    - target_r_squared: 目标决定系数 R²，默认 0.9。
-    - min_threshold: threshold 的最小值，默认 0.3。
-    - initial_threshold: threshold 的初始值，默认 3。
+    :param- file_path: Excel 文件的路径。
+    :param- degree: 多项式拟合的次数，默认3。
+    :param- show_equation: 是否在图中显示拟合函数表达式，默认显示。
+    :param- show_r_squared: 是否显示决定系数R²，默认显示。
+    :param- line_style: 最终拟合曲线的线型，默认为 '-'（实线）。
+    :param- line_color: 最终拟合曲线的颜色，默认为 'b'（蓝色）。
+    :param- line_width: 最终拟合曲线的线宽，默认为 1.5。
+    :param- remove_outliers: 是否去除异常值，默认 True。
+    :param- target_r_squared: 目标决定系数 R²，默认 0.9。
+    :param- min_threshold: threshold 的最小值，默认 0.3。
+    :param- initial_threshold: threshold 的初始值，默认 3。
     """
 
     # 弹窗选择文件
@@ -705,8 +733,9 @@ def sort_variable(root_dir, sort_standard=None, sort_all=False, ignore_list=['n'
     :param sort_standard: 控制变量法中分析的变量, 't' 即以 t(实验次数) 为标准进行文件分类
     :param sort_all: 当sort_standard = None, sort_all = True 时, 直接对所有变量遍历分类
     :param ignore_list: 分类时忽略的变量, 一般默认忽略序号和组别, 因为它们不影响板子的物理性质
-    :param move_single: 是否处理仅含单.xlsx文件的文件夹, 默认处理. 具体参看 Parts.py 中的 move_single_file_folders 函数
+    :param move_single: 是否处理仅含单.xlsx文件的文件夹, 默认处理. 具体参看 Parts.py/Parts.ipynb 中的 move_single_file_folders 函数
     :param draw_plot: 是否调用plot_multiple_files进行画图, 默认False(因为运行时间太长)
+    :param use_log: 对数据进行对数化处理, 默认关闭, 需要请手动设置为True
     '''
     if not sort_standard and not sort_all:
         print("No sort standard provided. Function will not execute.")
@@ -869,17 +898,17 @@ def sort_variable(root_dir, sort_standard=None, sort_all=False, ignore_list=['n'
         pjc.plot_multiple_folders(final_compare_dir, use_log)
 
 
-# # 示例调用
-# root_dir = './datas_learn/sort_test/test_2/all_data'
-# # root_dir = './datas_learn/sort_test/test_all/temp'
-# sort_standard = 't'
-# ignore_list = ['n', 'g']
+# # 使用例:
+# root_dir = './datas_learn/sort_variable/all_data'
 #
-# # 直接全部运行就是全都分类一次
-# sort_variable(root_dir, sort_standard='P', sort_all=False, ignore_list=ignore_list, move_single=True)
-# sort_variable(root_dir, sort_standard='d', sort_all=False, ignore_list=ignore_list, move_single=True)
-# sort_variable(root_dir, sort_standard='t', sort_all=False, ignore_list=ignore_list, move_single=True)
-# sort_variable(root_dir, sort_standard='e', sort_all=False, ignore_list=ignore_list, move_single=True)
-# sort_variable(root_dir, sort_standard='v', sort_all=False, ignore_list=ignore_list, move_single=True)
-
-# sort_variable(root_dir, sort_standard=None, sort_all=True, ignore_list=['n', 'g'], move_single=True)
+# ignore_list = ['n', 'g'] # 这两个参数设计有问题, 不起到区分作用, 所以直接将其忽略处理
+#
+# # 全部运行就是全都分类一次, 考虑到运行时间 , draw_plot 均设置为False, 不画图. 如有需要可自行修改.
+# # sort_variable(root_dir, sort_standard='P', sort_all=False, ignore_list=ignore_list, move_single=True, draw_plot=False)
+# # sort_variable(root_dir, sort_standard='d', sort_all=False, ignore_list=ignore_list, move_single=True, draw_plot=False)
+# # sort_variable(root_dir, sort_standard='t', sort_all=False, ignore_list=ignore_list, move_single=True, draw_plot=False)
+# # sort_variable(root_dir, sort_standard='e', sort_all=False, ignore_list=ignore_list, move_single=True, draw_plot=False)
+# # sort_variable(root_dir, sort_standard='v', sort_all=False, ignore_list=ignore_list, move_single=True, draw_plot=False)
+#
+# # 这一句的作用和上面5句一样, 考虑到运行时间 , draw_plot 设置为False, 不画图. 如有需要可自行修改.
+# sort_variable(root_dir, sort_standard=None, sort_all=True, ignore_list=['n', 'g'], move_single=True, draw_plot=False)

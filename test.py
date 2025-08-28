@@ -10,6 +10,7 @@ import shutil
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
+matplotlib.use('TkAgg') # 解决PyCharm的Matplotlib后端与当前Matplotlib版本不兼容问题
 import numpy as np
 from pygame.examples.testsprite import use_rle
 from sklearn.ensemble import IsolationForest # 去除离群值函数需要
@@ -75,7 +76,9 @@ matplotlib.rcParams['axes.unicode_minus'] = False  # 解决负号显示问题
 
 
 """----------------------------------------请在本分割线下放置需测试的代码--------------------------------------------------"""
-
+"""
+分类文件测试
+"""
 # import os
 # import shutil
 # import re
@@ -158,13 +161,15 @@ matplotlib.rcParams['axes.unicode_minus'] = False  # 解决负号显示问题
 # sort_variable(root_dir, sort_standard='d')
 
 """----------------------------------------请在本分割线下放置需测试的代码--------------------------------------------------"""
-
+"""
+分类文件使用例
+"""
 
 # 分类文件
-root_dir = './datas_learn/sort_test/test_2/all_data'
+# root_dir = './datas_learn/sort_test/test_2/all_data'
 
 # pjc.sort_variable(root_dir, sort_standard='P')
-# pjc.sort_variable(root_dir, sort_standard='d')
+# pjc.sort_variable(root_dir, sort_standard='d', ignore_list=['n', 'g'], move_single=True, draw_plot=True, use_log=True)
 # pjc.sort_variable(root_dir, sort_standard='n')
 
 # pjc.sort_variable(root_dir, sort_standard='t')
@@ -172,53 +177,168 @@ root_dir = './datas_learn/sort_test/test_2/all_data'
 # pjc.sort_variable(root_dir, sort_standard='e')
 # pjc.sort_variable(root_dir, sort_standard='v')
 
-pjc.sort_variable(root_dir, sort_standard=None, sort_all=True, ignore_list=['n', 'g'], move_single=True, draw_plot=True, use_log=True)
+# pjc.sort_variable(root_dir, sort_standard=None, sort_all=True, ignore_list=['n', 'g'], move_single=True, draw_plot=True, use_log=True)
+
 
 """----------------------------------------请在本分割线下放置需测试的代码--------------------------------------------------"""
+"""
+单点(电压)相关性分析尝试(失败)
+"""
 
+# import os
 # import pandas as pd
+# import numpy as np
+# from scipy.stats import pearsonr
+# import matplotlib.pyplot as plt
+# import re
+# import shutil
 #
-# def analyze_data(file_path, degree=3, show_equation=True, show_r_squared=True, line_style='--', line_color='r',
-#                  line_width=1.5, connect_points=False):
-#     """
-#     读取数据，进行多项式拟合并绘制结果，同时可以控制图表的细节和拟合的显示内容。
 #
-#     参数：
-#     - file_path: Excel 文件的路径。
-#     - degree: 多项式拟合的次数，默认3。
-#     - show_equation: 是否在图中显示拟合函数表达式，默认显示。
-#     - show_r_squared: 是否显示决定系数R²，默认显示。
-#     - line_style: 曲线的线型，默认为 '--'（虚线）。
-#     - line_color: 曲线的颜色，默认为 'r'（红色）。
-#     - line_width: 曲线的线宽，默认为 1.5。
-#     - connect_points: 是否连接原始数据点，默认不连接。(因为数据点较多, 不连接可以看出走势, 连接后观感不好)
-#          - 但在数据点上下频繁跳动时, 连接数据点看得更加清楚 (特指辐照注量小的情况)
-#     """
+# def analyze_voltage_correlation(file_path, analysis_var='t', voltage_step=2, tolerance=1):
+#     """基于sort_variable解析逻辑的电压点级相关性分析"""
+#     # 实验参数映射表
+#     annealing_time_table = {
+#         '0': {'group1': None, 'group2': None},
+#         '1': {'group1': None, 'group2': None},
+#         '2': {'group1': 0, 'group2': None},
+#         '3': {'group1': 7, 'group2': None},
+#         '4': {'group1': 14, 'group2': None},
+#         '5': {'group1': 21, 'group2': None},
+#         '6': {'group1': 28, 'group2': None},
+#         '7': {'group1': None, 'group2': 0},
+#         '8': {'group1': 72, 'group2': 16},
+#         '9': {'group1': 79, 'group2': 23},
+#         'A': {'group1': 105, 'group2': 49},
+#         'B': {'group1': 112, 'group2': 56},
+#         'C': {'group1': 119, 'group2': 63},
+#     }
 #
-#     # 读取 Excel 文件, 提取电压电流数据
-#     x, y = pt.read_xlsx(file_path)
+#     # 生成电压序列 (0-1000V)
+#     target_voltages = np.arange(0, 1001, voltage_step)
+#     correlation_data = {v: {'x': [], 'y': []} for v in target_voltages}
 #
-#     # 多项式拟合
-#     p, y_fit = pt.polynomial_fit(x, y, degree)
+#     # 遍历文件夹 ----------------------------------------------------------------
+#     for folder_name in os.listdir(file_path):
+#         folder_dir = os.path.join(file_path, folder_name)
+#         if not os.path.isdir(folder_dir):
+#             continue
 #
-#     # 打印拟合的多项式系数
-#     print(f"拟合多项式的系数（从高次到低次）: {p}")
+#         # 遍历文件
+#         for file in os.listdir(folder_dir):
+#             if not file.endswith('.xlsx'):
+#                 continue
 #
-#     # 准备拟合函数的字符串表达式（优化科学计数法显示）, 并拼接拟合函数表达式
-#     equation_str = pt.format_equation(p, degree)
+#             # 严格使用sort_variable的解析逻辑
+#             match = re.match(
+#                 r'^([TB]\d(?:\.\d)?)-(\d+)-(\d+)(\d+)-(\d+)(\d+)(?:\(.*\))?\.xlsx$',
+#                 file
+#             )
+#             if not match:
+#                 print(f"警告：文件 {file} 不符合命名规范（已跳过）")
+#                 continue
 #
-#     # 计算 R²（决定系数）
-#     r_squared = pt.calculate_r_squared(y,y_fit)
+#             # 提取参数（与sort_variable完全一致）
+#             layer_spacing = match.group(1)  # 走线类型和间距（如B0）
+#             number = match.group(2)  # 序号
+#             experiment_num = match.group(3)  # 实验次数（如21）
+#             experiment_group = match.group(4)  # 组别
+#             fluence = match.group(5)  # 辐照注量
+#             bias = match.group(6)  # 偏压
 #
-#     # 打印 R² 值
-#     print(f"决定系数: R^2 = {r_squared:.12f}")  # 12位保证在拟合效果较好时能看出差距
+#             # 计算分析变量（以退火时间为例）
+#             t_code = experiment_num[0]  # 实验次数代码
+#             e_code = fluence[0]  # 辐照注量代码
+#             group = 'group2' if e_code == '4' else 'group1'
+#             var_value = annealing_time_table.get(t_code, {}).get(group, None)
+#             if var_value is None:
+#                 continue
 #
-#     # 作图, 原数据及拟合曲线
-#     pt.plot_single(np.log10(x), y, y_fit, p, degree, show_equation, show_r_squared, line_style, line_color, line_width,
-#                     connect_points)
+#             # 读取数据
+#             try:
+#                 df = pd.read_excel(os.path.join(folder_dir, file))
+#                 voltage_col = df.columns[0]
+#                 current_col = df.columns[1]
 #
-# # pjc.analyze_data(file_path='./datas_learn/B00.xlsx',use_log=True)
+#                 # 数据清洗
+#                 df[voltage_col] = pd.to_numeric(df[voltage_col], errors='coerce')
+#                 df.dropna(subset=[voltage_col, current_col], inplace=True)
+#                 if df.empty:
+#                     continue
+#             except Exception as e:
+#                 print(f"文件 {file} 读取失败: {str(e)}")
+#                 continue
 #
-# pjc.analyze_data_OutlierRemoval(file_path='./datas_learn/B00.xlsx', use_log=True)
+#             # 分配数据到电压点
+#             for target_v in target_voltages:
+#                 lower = target_v - tolerance
+#                 upper = target_v + tolerance
+#                 valid_data = df[(df[voltage_col] >= lower) & (df[voltage_col] <= upper)]
+#                 if not valid_data.empty:
+#                     closest_idx = (valid_data[voltage_col] - target_v).abs().idxmin()
+#                     correlation_data[target_v]['x'].append(var_value)
+#                     correlation_data[target_v]['y'].append(valid_data.loc[closest_idx, current_col])
 #
-# pjc.iterate_fitting_OutlierRemoval(file_path='./datas_learn/B00.xlsx', use_log=True)
+#     # 结果分析与可视化 ----------------------------------------------------------
+#     img_dir = os.path.join(file_path, '0multiple_img')
+#     os.makedirs(img_dir, exist_ok=True)
+#
+#     # 计算相关系数
+#     voltages = []
+#     correlations = []
+#     for v in target_voltages:
+#         data = correlation_data[v]
+#         if len(data['x']) >= 2:
+#             try:
+#                 corr = pearsonr(data['x'], data['y'])[0]
+#                 voltages.append(v)
+#                 correlations.append(corr)
+#             except:
+#                 print(f"电压 {v}V 数据无效")
+#                 continue
+#
+#     # 生成图表（使用原文件夹名称）
+#     if len(voltages) > 0:
+#         plt.figure(figsize=(12, 6))
+#         plt.plot(voltages, correlations, 'b-', linewidth=1.5)
+#         plt.xlabel('Voltage (V)', fontsize=12)
+#         plt.ylabel('Pearson Correlation Coefficient', fontsize=12)
+#         plt.title(f'Voltage-Correlation Relationship ({analysis_var.upper()})', fontsize=14)
+#         plt.grid(True, linestyle='--', alpha=0.7)
+#
+#         # 使用原文件夹名称保存
+#         img_name = f"{os.path.basename(file_path)}_correlation.png"
+#         plt.savefig(os.path.join(img_dir, img_name), dpi=300)
+#         plt.close()
+#         print(f"分析完成，图表已保存至: {img_name}")
+#     else:
+#         print("无有效数据可生成图表")
+#
+#
+# if __name__ == "__main__":
+#     analyze_voltage_correlation(
+#         file_path='./datas_analyze/compare_t(45_45)',
+#         voltage_step=2,
+#         tolerance=1
+#     )
+
+"""----------------------------------------请在本分割线下放置需测试的代码--------------------------------------------------"""
+"""
+7-23数据分析
+"""
+# base_folder = 'E:\\拓展项目\\大创\\大创实验数据\\7-23_验证实验\\compare_t_old\\add'
+# pjc.plot_multiple_folders(base_folder, use_log=False)
+#
+# base_folder = 'E:\\拓展项目\\大创\\大创实验数据\\7-23_验证实验\\compare_t_old\\origin'
+# pjc.plot_multiple_folders(base_folder, use_log=False)
+
+# base_folder = 'E:\\拓展项目\\大创\\大创实验数据\\7-23_验证实验\\正反通电\\一正一反'
+# pjc.plot_multiple_folders(base_folder, use_log=False)
+
+# base_folder = 'E:\\拓展项目\\大创\\大创实验数据\\7-23_验证实验\\正反通电\\多正多反'
+# pjc.plot_multiple_folders(base_folder, use_log=False)
+
+# base_folder = 'E:\\拓展项目\\大创\\大创实验数据\\7-23_验证实验\\compare_t_new'
+# pjc.plot_multiple_folders(base_folder, use_log=False)
+
+
+# pjc.plot_multiple_files_windowed(colors=None, labels=None, line_styles=None, line_widths=None, use_log=False)

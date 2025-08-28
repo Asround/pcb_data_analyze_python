@@ -1,8 +1,12 @@
 """
 说明:
+对于读取类函数:
     1. 将 dataframe 参数传入本程序, 将获得提取出的电压和电流的数据列表
     2. 对各种 .xlsx表格均做了适配, 无需担心无法读取. (注意: 不支持 .csv表格, 若需读取请先转换为 .xlsx)
     3. 推荐在各类大型项目中, 导入本函数, 并用 'x, y =read_VA(df)'来调用. 电压/电流数据存储于 x/y中
+
+其他函数:
+    有各类可复用函数, 如画图, 拟合等等, 用于其他项目中函数引用.
 """
 
 import os
@@ -12,6 +16,7 @@ import shutil
 import pandas as pd
 import numpy as np
 import matplotlib
+matplotlib.use('TkAgg') # 解决PyCharm的Matplotlib后端与当前Matplotlib版本不兼容问题
 import matplotlib.pyplot as plt
 from tkinter import Tk, filedialog # 弹窗选择需要
 from sklearn.ensemble import IsolationForest # 去除离群值函数需要
@@ -26,17 +31,17 @@ matplotlib.rcParams['axes.unicode_minus'] = False  # 解决负号显示问题
 '''
 特化的, 转为读取项目.xlsx文件的读取函数, 返回电压电流数据
 '''
+
 def read_xlsx(file_path, clear=True):
     """
     读取 Excel 文件并提取电压电流数据。
     是read_VA的后续版本(功能有些许差异)
 
-    参数：
-    - file_path: Excel 文件的路径。
+    :param file_path: Excel 文件的路径。
+    :param clear: 用于去除过大过小值的参数
 
-    返回：
-    - x: 电压数据。
-    - y: 电流数据。
+    :return: x: 电压数据,
+     y: 电流数据。
     """
     xls = pd.ExcelFile(file_path)
     df = xls.parse(sheet_name=0)
@@ -84,65 +89,8 @@ def read_xlsx(file_path, clear=True):
         x = x[mask]
         y = y[mask]
 
-    return x,y
-
-'''
-相对于 read_xlsx, 加入了"大值"清除功能, 清除大于10000的值(电压最高1000, 电流限值0.01)
-'''
-def read_xlsx_clear(file_path, check_large_values=False):
-    """
-    读取 Excel 文件并提取电压电流数据。
-    是read_VA的后续版本(功能有些许差异)
-
-    参数：
-    - file_path: Excel 文件的路径。
-    - check_large_values: 布尔类型参数，如果为True，检查并替换大于10000的值为0。
-
-    返回：
-    - x: 电压数据。
-    - y: 电流数据。
-    """
-    xls = pd.ExcelFile(file_path)
-    df = xls.parse(sheet_name=0)
-
-    B2 = df.iloc[0, 1]  # '.iloc[0,1]': 取表格索引为[0,1]单元格(即B2)的内容
-    if 'V' in B2:  # 满足该条件, 即 "1.型表格"
-        B2 = False
-    else:  # 即"2/3.型表格"
-        B2 = int(df.iloc[0, 1])  # 将 B2 强制转换为int类型, 作用和 B2 = True 相同
-
-    # if 判断实现不同文件分类读取
-    if B2:
-        # "2/3.型表格"是非零数字(真), 满足 if 条件 则读取 C36 到 D536 的数据
-        df_filtered = df.iloc[34:34 + B2 - 1, [2, 3]].dropna()
-        # [34: 34 + B2 - 1,[2,3]]对应 C36 到 D536
-        # 34 对应 36 是因为自动丢弃第一行, 并且从 0 开始索引
-        # 2 对应 C 是因为 0 是开始索引, 对应 A
-        # [34 + B2 - 1, 3] 即 D(B2+33)单元格, 数学上易知是最后一个电流对应单元格
-        # # 这样规定的原因是, "2.型表格" 的电压电流数据后有统计量, 不希望它们被读入
-
-    else:
-        # "1.型表格" 对应False(假), 则读取 B3 到 C503 的数据
-        df_filtered = df.iloc[1:501, [1, 2]].dropna()
-        # [2,501]对应 C503, 相当于我们默认读取 501 组数据
-        # 因为"1.型表格" 的电压电流数据后面是空值, 会被 .dropna(丢弃), 不怕多读.
-
-    # 重新命名列名 (左边是电压, 右边是电流)
-    df_filtered.columns = ["电压 (V)", "电流 (A)"]
-
-    # 转换数据为数值类型（防止字符串干扰）,方便绘图和后续曲线拟合
-    df_filtered = df_filtered.astype(float)
-
-    # 提取自变量（电压）和因变量（电流）
-    x = df_filtered["电压 (V)"]
-    y = df_filtered["电流 (A)"]
-
-    # 检查并替换大于10000的值
-    if check_large_values:
-        x = x.where(x <= 10000, 0)
-        y = y.where(y <= 10000, 0)
-
     return x, y
+
 
 ''' ------------------------------------- 1.(1). 提取电压电流数据并返回两个列表 -----------------------------------------'''
 '''
@@ -152,18 +100,16 @@ def read_xlsx_clear(file_path, check_large_values=False):
 所以用 0 代替了 大于 10000 的值(电压不明显大于1000, 电流不大于0.01, 故10000 不会导致正常数据被置零).
 且异常大值目前只在开头见到, 所以 0 替换是合理的.
 '''
-def read_xlsx_remove_large_values(file_path, check_large_values=False):
+def read_xlsx_clear(file_path, check_large_values=False):
     """
     读取 Excel 文件并提取电压电流数据。
-    是read_VA的后续版本(功能有些许差异)时
+    是read_VA的后续版本(功能有些许差异)
 
-    参数：
-    - file_path: Excel 文件的路径。
-    - check_large_values: 布尔类型参数，如果为True，检查并替换大于10000的值为0。
+    :param file_path: Excel 文件的路径。
+    :param check_large_values: 布尔类型参数，如果为True，检查并替换大于10000的值为0。
 
-    返回：
-    - x: 电压数据。
-    - y: 电流数据。
+    :return: x: 电压数据,
+    y: 电流数据。
     """
     xls = pd.ExcelFile(file_path)
     df = xls.parse(sheet_name=0)
@@ -216,8 +162,7 @@ def select_file():
     """
     弹窗选择文件路径，并确保弹窗始终保持在最前端。
 
-    返回：
-    - file_path: 选择的文件路径，如果未选择则返回 None。
+    :return: file_path: 选择的文件路径，如果未选择则返回 None。
     """
     root = Tk()
     root.withdraw()  # 隐藏 Tkinter 根窗口
@@ -236,8 +181,7 @@ def select_folder():
     """
     弹窗选择文件夹路径，并确保弹窗始终保持在最前端。
 
-    返回：
-    - folder_path: 选择的文件夹路径，如果未选择则返回 None。
+    :return: folder_path: 选择的文件夹路径，如果未选择则返回 None。
     """
     root = Tk()
     root.withdraw()  # 隐藏 Tkinter 根窗口
@@ -253,14 +197,12 @@ def polynomial_fit(x, y, degree):
     """
     对数据进行多项式拟合。
 
-    参数：
-    - x: 电压数据。
-    - y: 电流数据。
-    - degree: 多项式拟合的次数。
+    :param x: 电压数据。
+    :param y: 电流数据。
+    :param degree: 多项式拟合的次数。
 
-    返回：
-    - p: 拟合多项式的系数。
-    - y_fit: 拟合后的电流值。
+    :return: p: 拟合多项式的系数,
+    y_fit: 拟合后的电流值。
     """
     p = np.polyfit(x, y, degree)
     y_fit = np.poly1d(p)(x)
@@ -273,12 +215,10 @@ def format_equation(p, degree):
     """
     生成拟合函数的字符串表达式（LaTeX 格式）。
 
-    参数：
-    - p: 拟合多项式的系数。
-    - degree: 多项式拟合的次数。
+    :param p: 拟合多项式的系数。
+    :param degree: 多项式拟合的次数。
 
-    返回：
-    - equation_str: 拟合函数的字符串表达式。
+    :return: equation_str: 拟合函数的字符串表达式。
     """
     equation_terms = []
     for i, coef in enumerate(p):
@@ -301,23 +241,31 @@ def calculate_r_squared(y, y_fit):
     """
     计算决定系数 R²。
 
-    参数：
-    - y: 原始电流数据。
-    - y_fit: 拟合后的电流值。
+    :param y: 原始电流数据。
+    :param y_fit: 拟合后的电流值。
 
-    返回：
-    - r_squared: 决定系数 R²。
+    :return: r_squared: 决定系数 R²。
     """
     ss_residual = np.sum((y - y_fit) ** 2)
     ss_total = np.sum((y - np.mean(y)) ** 2)
     return 1 - (ss_residual / ss_total)
-
 
 ''' ------------------------------------- 6. 去除离群值, 并重新拟合 -----------------------------------------------------'''
 '''
 依照已有数据(x, y)进行曲线拟合(多项式), 并联合两种方式去除离群值
 '''
 def fit_and_remove_outliers(x, y, degree, threshold):
+    """
+    :param x: 原始电压数据
+    :param y: 原始电流数据
+    :param degree: 多项式阶数
+    :param threshold: 接受阈值
+
+    :return: x_cleaned: 去除离群值后的电压数据,
+    y_cleaned: 去除离群值后的电流数据, p_cleaned: 去除群值后拟合的多项式系数,
+    y_fit_cleaned: 基于去除离群值后的数据拟合的电流,
+    r_squared_cleaned: 基于去除离群值后的拟合决定系数
+    """
     # 第一次拟合（用于检测异常值）
     p, y_fit = np.polyfit(x, y, degree), np.poly1d(np.polyfit(x, y, degree))(x)
     residuals = y - y_fit  # 计算残差
@@ -349,6 +297,8 @@ def fit_and_remove_outliers(x, y, degree, threshold):
 '''
 传入表格名称(str), 或者 .xlsx(表格文件路径), 均可返回解释文本
 '''
+
+
 def read_name(input_data, show_name=True, show_number=True, show_group=True, show_tip=True):
     '''
     :param input_data: 传入str 或者 .xlsx文件路径
@@ -356,6 +306,7 @@ def read_name(input_data, show_name=True, show_number=True, show_group=True, sho
     :param show_number: 是否输出板序号
     :param show_group: 是否输出实验组别
     :param show_tip: 当有备注内容时, 是否输出'有备注'
+
     :return: 包含解释内容的字符串
     '''
     # 判断输入是文件路径还是字符串
@@ -403,7 +354,6 @@ def read_name(input_data, show_name=True, show_number=True, show_group=True, sho
         result.append(", 有备注")
 
     return ''.join(result)
-
 
 # # 调用示例
 # # 读取文件名信息
@@ -463,18 +413,18 @@ def plot_single(x, y, y_fit, p, degree, show_equation, show_r_squared, line_styl
     绘制数据和拟合曲线。
 
     参数：
-    - x: 电压数据。
-    - y: 原始电流数据。
-    - y_fit: 拟合后的电流值。
-    - p: 拟合多项式的系数。
-    - degree: 多项式拟合的次数。
-    - show_equation: 是否显示拟合函数表达式。
-    - show_r_squared: 是否显示决定系数 R²。
-    - line_style: 拟合曲线的线型。
-    - line_color: 拟合曲线的颜色。
-    - line_width: 拟合曲线的线宽。
-    - connect_points: 是否连接原始数据点。
-    - use_log: 是否对横轴进行对数化处理。
+    :param x: 电压数据。
+    :param y: 原始电流数据。
+    :param y_fit: 拟合后的电流值。
+    :param p: 拟合多项式的系数。
+    :param degree: 多项式拟合的次数。
+    :param show_equation: 是否显示拟合函数表达式。
+    :param show_r_squared: 是否显示决定系数 R²。
+    :param line_style: 拟合曲线的线型。
+    :param line_color: 拟合曲线的颜色。
+    :param line_width: 拟合曲线的线宽。
+    :param connect_points: 是否连接原始数据点。
+    :param use_log: 是否对横轴进行对数化处理。
     """
     plt.figure(figsize=(8, 6))
 
@@ -517,7 +467,6 @@ def plot_single(x, y, y_fit, p, degree, show_equation, show_r_squared, line_styl
 
     # 显示图像
     plt.show()
-
 '''
 (2). 单文件 单次去除离群值 画图
 包含了原数据绘图 + 两次拟合曲线绘图 功能
@@ -530,24 +479,24 @@ def plot_removal_1(x, y, x_cleaned, y_cleaned, y_fit, y_fit_cleaned, equation_st
     绘制电压-电流曲线及拟合（清除异常值）
 
     Parameters:
-    - x: 原始 x 数据（电压）
-    - y: 原始 y 数据（电流）
-    - x_cleaned: 清除异常值后的 x 数据
-    - y_cleaned: 清除异常值后的 y 数据
-    - y_fit: 清除前的拟合曲线 y 数据
-    - y_fit_cleaned: 清除后的拟合曲线 y 数据
-    - equation_str: 清除前拟合的函数表达式
-    - equation_str_cleaned: 清除后拟合的函数表达式
-    - r_squared: 清除前拟合的 R² 值
-    - r_squared_cleaned: 清除后拟合的 R² 值
-    - degree: 多项式拟合的次数
-    - line_style: 拟合曲线的样式
-    - line_color: 拟合曲线的颜色
-    - line_width: 拟合曲线的宽度
-    - show_equation: 是否显示拟合函数表达式 (默认 True)
-    - show_r_squared: 是否显示 R² 值 (默认 True)
-    - remove_outliers: 是否显示清除异常值后的数据点 (默认 True)
-    - use_log: 是否对横轴进行对数化处理。
+    :param x: 原始 x 数据（电压）
+    :param y: 原始 y 数据（电流）
+    :param x_cleaned: 清除异常值后的 x 数据
+    :param y_cleaned: 清除异常值后的 y 数据
+    :param y_fit: 清除前的拟合曲线 y 数据
+    :param y_fit_cleaned: 清除后的拟合曲线 y 数据
+    :param equation_str: 清除前拟合的函数表达式
+    :param equation_str_cleaned: 清除后拟合的函数表达式
+    :param r_squared: 清除前拟合的 R² 值
+    :param r_squared_cleaned: 清除后拟合的 R² 值
+    :param degree: 多项式拟合的次数
+    :param line_style: 拟合曲线的样式
+    :param line_color: 拟合曲线的颜色
+    :param line_width: 拟合曲线的宽度
+    :param show_equation: 是否显示拟合函数表达式 (默认 True)
+    :param show_r_squared: 是否显示 R² 值 (默认 True)
+    :param remove_outliers: 是否显示清除异常值后的数据点 (默认 True)
+    :param use_log: 是否对横轴进行对数化处理。
     """
 
     # 对数化处理
@@ -602,7 +551,6 @@ def plot_removal_1(x, y, x_cleaned, y_cleaned, y_fit, y_fit_cleaned, equation_st
     # 显示图像
     plt.show()
 
-
 '''
 (3). 单文件 多次去除离群值 画图
 包含了原数据绘图 + 最后一次拟合曲线绘图 功能 ( 和(2)有较高相似性 )
@@ -614,20 +562,20 @@ def plot_removal_2(x, y, x_cleaned, y_cleaned, y_fit_cleaned, equation_str_clean
     绘制数据和拟合曲线。
 
     参数：
-    - x: 原始数据的 x 值。
-    - y: 原始数据的 y 值。
-    - x_cleaned: 清除异常值后的 x 值。
-    - y_cleaned: 清除异常值后的 y 值。
-    - y_fit_cleaned: 清除异常值后的拟合 y 值。
-    - equation_str_cleaned: 清除异常值后的拟合函数表达式。
-    - r_squared_cleaned: 清除异常值后的决定系数 R²。
-    - degree: 多项式拟合的次数。
-    - show_equation: 是否在图中显示拟合函数表达式，默认显示。
-    - show_r_squared: 是否显示决定系数 R²，默认显示。
-    - line_style: 曲线的线型，默认为 '-'（实线）。
-    - line_color: 曲线的颜色，默认为 'b'（蓝色）。
-    - line_width: 曲线的线宽，默认为 1.5。
-    - use_log: 是否对横轴进行对数化处理。
+    :param x: 原始数据的 x 值。
+    :param y: 原始数据的 y 值。
+    :param x_cleaned: 清除异常值后的 x 值。
+    :param y_cleaned: 清除异常值后的 y 值。
+    :param y_fit_cleaned: 清除异常值后的拟合 y 值。
+    :param- equation_str_cleaned: 清除异常值后的拟合函数表达式。
+    :param- r_squared_cleaned: 清除异常值后的决定系数 R²。
+    :param- degree: 多项式拟合的次数。
+    :param- show_equation: 是否在图中显示拟合函数表达式，默认显示。
+    :param- show_r_squared: 是否显示决定系数 R²，默认显示。
+    :param- line_style: 曲线的线型，默认为 '-'（实线）。
+    :param- line_color: 曲线的颜色，默认为 'b'（蓝色）。
+    :param- line_width: 曲线的线宽，默认为 1.5。
+    :param- use_log: 是否对横轴进行对数化处理。
     """
     # 对数化处理
     if use_log:
@@ -672,7 +620,6 @@ def plot_removal_2(x, y, x_cleaned, y_cleaned, y_fit_cleaned, equation_str_clean
 
     # 显示图像
     plt.show()
-
 
 ''' ------------------------------------------- *. pjc改编函数 --------------------------------------------------------'''
 
@@ -737,7 +684,6 @@ def analyze_data_no_display(file_path, degree=3, show_equation=True, show_r_squa
 
     # 返回图像对象
     return plt.gcf()
-
 ''' ------------------------------------- 2. 分析多个文件并作图拟合, 不弹窗展示 -------------------------------------------'''
 
 # def plot_multiple_files_no_display(folder_path, colors=None, labels=None, line_styles=None, line_widths=None, use_log=False):
@@ -820,12 +766,12 @@ def plot_multiple_files_no_display(folder_path, colors=None, labels=None, line_s
     功能与plot_multiple_files相同, 只是不展示图像(删除最后一句语句)
 
     参数：
-    - folder_path: 文件夹路径，例如 "./data"。
-    - colors: 每个文件的曲线颜色列表，例如 ['b', 'r', 'g']。
-    - labels: 每个文件的图例标签列表，例如 ["文件1", "文件2", "文件3"]。
-    - line_styles: 每个文件的线型列表，例如 ['-', '--', ':']。
-    - line_widths: 每个文件的线宽列表，例如 [1.5, 1.5, 1.5]。
-    - use_log: 是否对 x 轴数据进行对数化处理。
+    :param folder_path: 文件夹路径，例如 "./data"。
+    :param colors: 每个文件的曲线颜色列表，例如 ['b', 'r', 'g']。
+    :param- labels: 每个文件的图例标签列表，例如 ["文件1", "文件2", "文件3"]。
+    :param- line_styles: 每个文件的线型列表，例如 ['-', '--', ':']。
+    :param- line_widths: 每个文件的线宽列表，例如 [1.5, 1.5, 1.5]。
+    :param- use_log: 是否对 x 轴数据进行对数化处理。
     """
     # 获取文件夹中的所有 Excel 文件
     file_paths = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if f.endswith('.xlsx')]
