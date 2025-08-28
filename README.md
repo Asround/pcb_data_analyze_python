@@ -61,6 +61,8 @@ Parts.ipynb: 和 Part.py 内容基本相同, 只是使用了 jupyter notebook格
 
 Projects.ipynb: 和 Projects.py 内容基本相同, 只是使用了 jupyter notebook格式编写, 各个函数均增加了说明, 并同 Projects.py 一样附有完整使用例.
 
+interacte_window.py: 一个交互界面, 半成品, 没有完成计划考虑, 可当做弃用.
+
 所需库.md : 内有代码运行所需额外安装库的信息, 以及安装代码(使用清华镜像)
 
 ## 其他说明
